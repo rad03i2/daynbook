@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/home/presentation/home_screen.dart';
+import 'features/backup/application/backup_controller.dart';
+import 'features/home/presentation/main_shell.dart';
 import 'features/ledger/application/ledger_controller.dart';
 
 class DaynBookApp extends StatefulWidget {
@@ -13,17 +14,25 @@ class DaynBookApp extends StatefulWidget {
 }
 
 class _DaynBookAppState extends State<DaynBookApp> {
-  late final LedgerController _controller;
+  late final LedgerController _ledgerController;
+  late final BackupController _backupController;
 
   @override
   void initState() {
     super.initState();
-    _controller = LedgerController()..initialize();
+    _ledgerController = LedgerController()..initialize();
+    _backupController = BackupController(
+      onRestored: () async {
+        _ledgerController.clearSelection();
+        await _ledgerController.loadCustomers(search: '');
+      },
+    )..initialize();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _backupController.dispose();
+    _ledgerController.dispose();
     super.dispose();
   }
 
@@ -40,7 +49,10 @@ class _DaynBookAppState extends State<DaynBookApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: AppTheme.light(),
-      home: HomeScreen(controller: _controller),
+      home: MainShell(
+        ledgerController: _ledgerController,
+        backupController: _backupController,
+      ),
     );
   }
 }
