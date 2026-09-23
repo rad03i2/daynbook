@@ -22,7 +22,7 @@ void daynBookWorkmanagerDispatcher() {
         return true;
       }
       await coordinator.initialize();
-      return coordinator.runBackgroundBackup();
+      return await coordinator.runBackgroundBackup();
     } catch (_) {
       return false;
     } finally {
