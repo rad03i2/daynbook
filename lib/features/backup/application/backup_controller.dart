@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../data/backup/backup_coordinator.dart';
@@ -29,10 +31,15 @@ class BackupController extends ChangeNotifier {
   bool get isGoogleConnected => _email != null;
 
   Future<void> initialize() async {
-    await _run(() async {
-      await _coordinator.initialize();
-      await _refreshLocalState();
-    });
+    try {
+      await _run(() async {
+        await _coordinator.initialize();
+        await _refreshLocalState();
+      });
+    } catch (_) {
+      // Cloud initialization must never prevent the local debt ledger from
+      // starting. The error remains visible in lastError for the backup UI.
+    }
   }
 
   Future<void> signIn() async {
@@ -159,7 +166,7 @@ class BackupController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _coordinator.dispose();
+    unawaited(_coordinator.dispose());
     super.dispose();
   }
 }
