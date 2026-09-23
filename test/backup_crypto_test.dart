@@ -8,8 +8,8 @@ void main() {
       final snapshot = <String, dynamic>{
         'schemaVersion': 1,
         'exportedAt': '2026-09-24T00:00:00.000Z',
-        'customers': [
-          {
+        'customers': <Map<String, dynamic>>[
+          <String, dynamic>{
             'id': 'customer-1',
             'name': 'أحمد',
             'phone': '07700000000',
@@ -18,8 +18,8 @@ void main() {
             'updated_at': 2,
           },
         ],
-        'transactions': [
-          {
+        'transactions': <Map<String, dynamic>>[
+          <String, dynamic>{
             'id': 'transaction-1',
             'customer_id': 'customer-1',
             'type': 'debt',
@@ -40,9 +40,14 @@ void main() {
         passphrase: 'strong-passphrase-123',
       );
 
+      final customers = restored['customers'] as List<dynamic>;
+      final transactions = restored['transactions'] as List<dynamic>;
       expect(restored['schemaVersion'], 1);
-      expect((restored['customers'] as List).single['name'], 'أحمد');
-      expect((restored['transactions'] as List).single['amount'], 25000);
+      expect((customers.single as Map<String, dynamic>)['name'], 'أحمد');
+      expect(
+        (transactions.single as Map<String, dynamic>)['amount'],
+        25000,
+      );
     });
 
     test('rejects an incorrect passphrase', () async {
@@ -50,8 +55,8 @@ void main() {
       final encrypted = await crypto.encryptSnapshot(
         <String, dynamic>{
           'schemaVersion': 1,
-          'customers': const [],
-          'transactions': const [],
+          'customers': <Map<String, dynamic>>[],
+          'transactions': <Map<String, dynamic>>[],
         },
         passphrase: 'correct-passphrase',
       );
