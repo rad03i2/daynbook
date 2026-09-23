@@ -11,6 +11,7 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase._();
   static const _databaseName = 'daynbook.db';
   static const _databaseVersion = 1;
+  static const backupSchemaVersion = 1;
   static const _uuid = Uuid();
 
   Database? _database;
@@ -206,6 +207,141 @@ class AppDatabase {
       notes: _emptyToNull(notes),
       createdAt: now,
     );
+  }
+
+  Future<Map<String, dynamic>> exportBackupSnapshot() async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final customers = await txn.query('customers', orderBy: 'created_at ASC');
+      final transactions = await txn.query(
+        'transactions',
+        orderBy: 'created_at ASC',
+      );
+
+      return <String, dynamic>{
+        'schemaVersion': backupSchemaVersion,
+        'exportedAt': DateTime.now().toUtc().toIso8601String(),
+        'customers': customers,
+        'transactions': transactions,
+      };
+    });
+  }
+
+  Future<void> restoreBackupSnapshot(Map<String, dynamic> snapshot) async {
+    final schemaVersion = snapshot['schemaVersion'];
+    if (schemaVersion != backupSchemaVersion) {
+      throw FormatException(
+        'Unsupported backup schema: $schemaVersion',
+      );
+    }
+
+    final customerRows = _validatedCustomerRows(snapshot['customers']);
+    final transactionRows = _validatedTransactionRows(
+      snapshot['transactions'],
+      customerRows.map((row) => row['id']! as String).toSet(),
+    );
+
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('transactions');
+      await txn.delete('customers');
+
+      for (final row in customerRows) {
+        await txn.insert(
+          'customers',
+          row,
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+      for (final row in transactionRows) {
+        await txn.insert(
+          'transactions',
+          row,
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+    });
+  }
+
+  static List<Map<String, Object?>> _validatedCustomerRows(Object? value) {
+    if (value is! List) {
+      throw const FormatException('Backup customers must be a list');
+    }
+
+    final rows = <Map<String, Object?>>[];
+    final ids = <String>{};
+    for (final item in value) {
+      if (item is! Map) {
+        throw const FormatException('Invalid customer row');
+      }
+      final row = Map<String, Object?>.from(item);
+      final id = row['id'];
+      final name = row['name'];
+      final createdAt = row['created_at'];
+      final updatedAt = row['updated_at'];
+      if (id is! String ||
+          id.isEmpty ||
+          name is! String ||
+          name.trim().isEmpty ||
+          createdAt is! int ||
+          updatedAt is! int ||
+          !ids.add(id)) {
+        throw const FormatException('Invalid customer data in backup');
+      }
+      rows.add({
+        'id': id,
+        'name': name,
+        'phone': row['phone'] as String?,
+        'notes': row['notes'] as String?,
+        'created_at': createdAt,
+        'updated_at': updatedAt,
+      });
+    }
+    return rows;
+  }
+
+  static List<Map<String, Object?>> _validatedTransactionRows(
+    Object? value,
+    Set<String> customerIds,
+  ) {
+    if (value is! List) {
+      throw const FormatException('Backup transactions must be a list');
+    }
+
+    final rows = <Map<String, Object?>>[];
+    final ids = <String>{};
+    for (final item in value) {
+      if (item is! Map) {
+        throw const FormatException('Invalid transaction row');
+      }
+      final row = Map<String, Object?>.from(item);
+      final id = row['id'];
+      final customerId = row['customer_id'];
+      final type = row['type'];
+      final amount = row['amount'];
+      final createdAt = row['created_at'];
+      if (id is! String ||
+          id.isEmpty ||
+          customerId is! String ||
+          !customerIds.contains(customerId) ||
+          (type != 'debt' && type != 'payment') ||
+          amount is! int ||
+          amount <= 0 ||
+          createdAt is! int ||
+          !ids.add(id)) {
+        throw const FormatException('Invalid transaction data in backup');
+      }
+      rows.add({
+        'id': id,
+        'customer_id': customerId,
+        'type': type,
+        'amount': amount,
+        'description': row['description'] as String?,
+        'notes': row['notes'] as String?,
+        'created_at': createdAt,
+      });
+    }
+    return rows;
   }
 
   Future<void> close() async {
