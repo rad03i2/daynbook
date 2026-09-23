@@ -1,4 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
-    <application android:label="دفتر الدين DEV" />
+    <application
+        android:label="دفتر الدين DEV"
+        tools:replace="android:label" />
 </manifest>
