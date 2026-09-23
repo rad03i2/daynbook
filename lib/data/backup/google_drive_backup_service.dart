@@ -26,6 +26,9 @@ class GoogleDriveBackupService {
   static const _backupExtension = '.dnbk';
   static const _maxBackups = 5;
   static const _scopes = <String>[drive.DriveApi.driveAppdataScope];
+  static const _serverClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
 
   final GoogleSignIn _signIn = GoogleSignIn.instance;
 
@@ -41,7 +44,9 @@ class GoogleDriveBackupService {
   }
 
   Future<void> _initialize() async {
-    await _signIn.initialize();
+    await _signIn.initialize(
+      serverClientId: _serverClientId.isEmpty ? null : _serverClientId,
+    );
     _authSubscription = _signIn.authenticationEvents.listen((event) {
       if (event is GoogleSignInAuthenticationEventSignIn) {
         _account = event.user;
