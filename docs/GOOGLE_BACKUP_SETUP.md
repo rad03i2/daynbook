@@ -6,9 +6,9 @@
 
 - Application ID: `com.rad03i2.daynbook`
 - اسم التطبيق: `DaynBook | دفتر الدين`
-- الحد الأدنى المقترح لـ Android: API 23 أو أحدث.
+- الحد الأدنى المستهدف لـ Android: **API 24 أو أحدث**.
 
-سبب API 23 هو أن `flutter_secure_storage` الحديث يستخدم تخزينًا آمنًا أقوى على Android.
+الإصدار الحالي من `google_sign_in_android` يدعم Android SDK 24+، لذلك نعتمد 24 بدل خفض الحد إلى 23.
 
 ## Google Cloud
 
@@ -18,7 +18,28 @@
 4. أنشئ OAuth Client من نوع **Android**.
 5. استخدم Application ID: `com.rad03i2.daynbook`.
 6. أضف SHA-1 لشهادة debug أثناء الاختبار، وSHA-1 لشهادة release قبل النشر.
-7. لا تضع Client Secret أو مفاتيح خاصة داخل GitHub.
+7. أنشئ أيضًا OAuth Client من نوع **Web application**.
+8. استخدم Client ID الخاص بالـWeb client كقيمة `GOOGLE_SERVER_CLIENT_ID` عند التشغيل أو البناء.
+9. لا تضع Client Secret أو مفاتيح خاصة داخل GitHub.
+
+DaynBook لا يحتاج Client Secret داخل التطبيق. الكود يقرأ Web OAuth Client ID من `--dart-define` ثم يمرره إلى `GoogleSignIn.initialize(serverClientId: ...)`، وهي طريقة الإعداد المستخدمة عندما لا نعتمد على `google-services.json`.
+
+مثال تشغيل للاختبار:
+
+```bash
+flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com
+```
+
+ومثال بناء الإصدار لاحقًا:
+
+```bash
+flutter build appbundle --release \
+  --dart-define=GOOGLE_SERVER_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com
+```
+
+> يجب أن يتطابق Android OAuth client مع package name وشهادة التوقيع المستخدمة في البناء. اختلاف SHA أو package name من أكثر أسباب فشل Google Sign-In شيوعًا.
+
+## نطاق Google Drive
 
 DaynBook يطلب فقط النطاق:
 
@@ -41,7 +62,7 @@ https://www.googleapis.com/auth/drive.appdata
 
 ## عبارة الحماية
 
-- يجب أن تكون 8 أحرف على الأقل.
+- يجب أن تكون 8 أحرف على الأقل؛ ويُفضّل عمليًا استخدام عبارة أطول وفريدة.
 - تحفظ على الجهاز باستخدام `flutter_secure_storage` كي يستطيع النسخ التلقائي العمل دون سؤال المستخدم كل ساعة.
 - لا تُرفع عبارة الحماية إلى Google Drive.
 - عند فقدان الجهاز، يجب على المستخدم إدخال العبارة نفسها على الجهاز الجديد لفك النسخة.
@@ -63,7 +84,7 @@ daynbook-hourly-cloud-backup
 
 التوقيت في Android WorkManager غير لحظي؛ النظام قد يؤخر المهمة قليلًا بسبب Doze أو تحسين البطارية. لذلك يوجد أيضًا زر **نسخ الآن** داخل التطبيق.
 
-عند إنشاء مجلد `android/` النهائي يجب اتباع إعداد Android الحالي لحزمة WorkManager، بما في ذلك Application class المطلوب من الحزمة، ثم اختبار التنفيذ على Android حديث.
+عند إنشاء مجلد `android/` النهائي يجب اتباع إعداد Android الحالي لحزمة WorkManager، بما في ذلك إعدادات المنصة التي تتطلبها الحزمة، ثم اختبار التنفيذ على Android حديث.
 
 ## سلوك Offline-First
 
