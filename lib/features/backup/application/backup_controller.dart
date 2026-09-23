@@ -8,12 +8,11 @@ import '../../../data/backup/google_drive_backup_service.dart';
 class BackupController extends ChangeNotifier {
   BackupController({
     BackupCoordinator? coordinator,
-    Future<void> Function()? onRestored,
-  })  : _coordinator = coordinator ?? BackupCoordinator(),
-        _onRestored = onRestored;
+    this.onRestored,
+  }) : _coordinator = coordinator ?? BackupCoordinator();
 
   final BackupCoordinator _coordinator;
-  final Future<void> Function()? _onRestored;
+  final Future<void> Function()? onRestored;
 
   bool _isBusy = false;
   bool _hasPassphrase = false;
@@ -97,8 +96,9 @@ class BackupController extends ChangeNotifier {
         backup,
         passphrase: passphrase,
       );
-      if (_onRestored != null) {
-        await _onRestored!();
+      final callback = onRestored;
+      if (callback != null) {
+        await callback();
       }
       await _refreshLocalState();
     });
@@ -107,8 +107,9 @@ class BackupController extends ChangeNotifier {
   Future<void> restoreLatest({String? passphrase}) async {
     await _run(() async {
       await _coordinator.restoreLatest(passphrase: passphrase);
-      if (_onRestored != null) {
-        await _onRestored!();
+      final callback = onRestored;
+      if (callback != null) {
+        await callback();
       }
       await _refreshLocalState();
       await _loadRemoteBackupsInternal();
